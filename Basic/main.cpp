@@ -217,12 +217,12 @@ void DoExample5()
     // Result of the CRC function
     uint32_t Remainder = 0;
 
-    for (uint8_t ByteIndex : Message)
+    for (uint8_t MessageByte : Message)
     {
         // Align the message byte with the generator polynomial e.g. make 0x12 to be 0x1200 so it represents a polynomial of degree n-1
         uint32_t ShiftLeft = CrcN - TotalBytes;
-        uint32_t MessageByteShifted = ByteIndex << ShiftLeft;
-        printf("%x << %d == %x\n", ByteIndex, ShiftLeft, MessageByteShifted);
+        uint32_t MessageByteShifted = MessageByte << ShiftLeft;
+        printf("%x << %d == %x\n", MessageByte, ShiftLeft, MessageByteShifted);
 
         // Calculate the remainder
         Remainder = Remainder ^ MessageByteShifted;
@@ -256,44 +256,36 @@ void DoExample6()
 {
     // Binary message 00010000 00010001 00010010 00010011 00010100 00010101 00010110 00010111
     constexpr uint8_t Message[]{ 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17 };
-    constexpr uint32_t TotalBytes = std::size(Message);
 
     // Most significant bit first (big-endian), note that the x power n bit is ignored, aka the coefficient of the msb bit
     // (x16)+x12+x5+1 = (1) 0001 0000 0010 0001 = 0x1021
     // Least significant bit first (little-endian)
     // 1+x5+x12+(x16) = 1000 0100 0000 1000 (1) = 0x8408
     constexpr uint32_t Crc = 0x8408;
-    constexpr uint32_t CrcN = 16;
 
     // Result of the CRC function
     uint32_t Remainder = 0;
-
-    for (uint8_t ByteIndex : Message)
+    for (uint8_t MessageByte : Message)
     {
-        // Align the message byte with the generator polynomial e.g. make 0x12 to be 0x1200 so it represents a polynomial of degree n-1
-        uint32_t ShiftLeft = CrcN - TotalBytes;
-        uint32_t MessageByteShifted = ByteIndex << ShiftLeft;
-        printf("%x << %d == %x\n", ByteIndex, ShiftLeft, MessageByteShifted);
-
         // Calculate the remainder
-        Remainder = Remainder ^ MessageByteShifted;
+        Remainder = Remainder ^ MessageByte;
 
         for (uint32_t BitIndex = 0; BitIndex < 8; ++BitIndex)
         {
             // Check the coefficient of polynomial n-1, i.e. 1000 0000 0000 0000
-            if (Remainder & 0x8000)
+            if (Remainder & 0x1)
             {
-                Remainder = (Remainder << 1) ^ Crc;
+                Remainder = (Remainder >> 1) ^ Crc;
             }
             else
             {
-                Remainder = Remainder << 1;
+                Remainder = Remainder >> 1;
             }
         }
 
         // We need to mask 16bits on the remainder because we are ignoring the n coefficient of the crc polynomial
         // so we are not guaranteeing the n coefficient at remainder and crc to cancel each other
-        Remainder = Remainder & 0xffff;
+        // Remainder = Remainder & 0xffff;
 
         printf("Remainder = %x\n", Remainder);
     }
