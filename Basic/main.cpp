@@ -220,7 +220,7 @@ void DoExample5()
     for (uint8_t MessageByte : Message)
     {
         // Align the message byte with the generator polynomial e.g. make 0x12 to be 0x1200 so it represents a polynomial of degree n-1
-        uint32_t ShiftLeft = CrcN - TotalBytes;
+        constexpr uint32_t ShiftLeft = 8;
         uint32_t MessageByteShifted = MessageByte << ShiftLeft;
         printf("%x << %d == %x\n", MessageByte, ShiftLeft, MessageByteShifted);
 
@@ -272,7 +272,7 @@ void DoExample6()
 
         for (uint32_t BitIndex = 0; BitIndex < 8; ++BitIndex)
         {
-            // Check the coefficient of polynomial n-1, i.e. 1000 0000 0000 0000
+            // Check the coefficient of polynomial n-1, i.e. 0000 0000 0000 0001
             if (Remainder & 0x1)
             {
                 Remainder = (Remainder >> 1) ^ Crc;
