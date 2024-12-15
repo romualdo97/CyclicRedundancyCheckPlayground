@@ -138,7 +138,7 @@ uint32_t PolynomialBitString::GetDegreeAt(uint32_t Index) const
     return StartIndex - Index; 
 }
 
-uint32_t PolynomialBitString::GetLength() const
+uint32_t PolynomialBitString::TotalTerms() const
 {
     return Length;
 }
@@ -165,7 +165,7 @@ std::string PolynomialBitString::ToString(uint32_t InitialDegree) const
 Polynomial Polynomial::FromBitString(const PolynomialBitString& BitString)
 {
     Polynomial Result;
-    for (uint32_t Index = 0; Index < BitString.GetLength(); ++Index)
+    for (uint32_t Index = 0; Index < BitString.TotalTerms(); ++Index)
     {
         if (BitString[Index])
         {

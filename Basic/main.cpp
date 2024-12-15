@@ -36,9 +36,9 @@ void DoExample1()
     printf("InitialMessage = %s [%s]\n\n", Remainder.ToDebugString().c_str(), Remainder.ToString().c_str());
 
     // Message lenght is 8bits
-    assert(BitString.GetLength() == 8); // Message length must be 8
+    assert(BitString.TotalTerms() == 8); // Message length must be 8
 
-    for (size_t Index = 0; Index < BitString.GetLength(); ++Index)
+    for (size_t Index = 0; Index < BitString.TotalTerms(); ++Index)
     {
         Remainder = Remainder * x{ 1 };
         printf("%s - [%s]\n",
@@ -86,7 +86,7 @@ void DoExample2()
     Polynomial Remainder = Polynomial::FromBitString(Message.Substring(Crc3.GetDegree()));
     printf("InitialMessage = %s [%s]\n\n", Remainder.ToDebugString().c_str(), Remainder.ToString().c_str());
     
-    for (uint32_t Index = 0; Index < Message.GetLength(); ++Index)
+    for (uint32_t Index = 0; Index < Message.TotalTerms(); ++Index)
     {
         Remainder = Remainder * x{ 1 } + Message[Crc3.GetDegree() + Index] * x{ 0 };
         printf("%s - [%s]\n",
@@ -130,7 +130,7 @@ void DoExample3()
     Polynomial Remainder = Polynomial::Zero();
     printf("InitialMessage = %s [%s]\n\n", Remainder.ToDebugString().c_str(), Remainder.ToString().c_str());
     
-    for (uint32_t Index = 0; Index < Message.GetLength(); ++Index)
+    for (uint32_t Index = 0; Index < Message.TotalTerms(); ++Index)
     {
         Remainder = Remainder + Message[Index] * x{ Crc3.GetDegree() - 1 };
         printf("%s - [%s]\n",
@@ -173,7 +173,7 @@ void DoExample4()
     printf("InitialMessage = %s [%s]\n\n", Remainder.ToDebugString().c_str(), Remainder.ToString().c_str());
 
     uint32_t ByteSize = 8; // Size of byte in bits
-    uint32_t TotalBytes = Message.GetLength() / ByteSize;
+    uint32_t TotalBytes = Message.TotalTerms() / ByteSize;
     for (uint32_t ByteIndex = 0; ByteIndex < TotalBytes; ++ByteIndex)
     {
         Remainder = Remainder + Polynomial::FromBitString(Message.Substring(ByteIndex * ByteSize, 8)) * x{ Crc8.GetDegree() - ByteSize };

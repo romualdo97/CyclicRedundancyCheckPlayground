@@ -23,7 +23,7 @@ struct PolynomialBitString
     PolynomialBitString Substring(uint32_t TotalElements) const;
     PolynomialBitString Substring(uint32_t Start, uint32_t TotalElements) const;
     uint32_t GetDegreeAt(uint32_t Index) const; // Degree of the term at given index
-    uint32_t GetLength() const;
+    uint32_t TotalTerms() const;
     uint32_t GetData() const;
     std::string ToString(uint32_t InitialDegree = 0) const; 
 
