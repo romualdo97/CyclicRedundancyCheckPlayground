@@ -242,6 +242,7 @@ const uint8_t* Align(const uint8_t* Data, uint64_t Alignment)
 void FCrc::Init()
 {
 #if _DEBUG
+    // For more context on the reverse check https://github.com/Michaelangel007/crc32
     uint32_t ReversedCrc = ReverseBits(Crc32Poly);
     // printf("Crc = %08x, ReversedCrc = %08x\n", Crc32Poly, ReversedCrc);
 
