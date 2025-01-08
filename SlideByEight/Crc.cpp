@@ -171,6 +171,74 @@ uint32_t ReverseBits(uint32_t Bits)
     return Bits;
 }
 
+/**
+ * Aligns a value to the nearest higher multiple of 'Alignment', which must be a power of two. 
+ * 
+ * @param Data - The value to align.
+ * @param Alignment - The alignment value, must be a power of two. 
+ * @return The value aligned up to the specified alignment.
+ */
+const uint8_t* Align(const uint8_t* Data, uint64_t Alignment)
+{
+    // https://releases.llvm.org/13.0.0/tools/clang/tools/extra/docs/clang-tidy/checks/performance-no-int-to-ptr.html
+    // https://stackoverflow.com/questions/6320264/how-to-align-pointer
+    // https://stackoverflow.com/questions/466204/rounding-up-to-next-power-of-2
+    // Fastest Method to Align Pointers: https://github.com/KabukiStarship/KabukiToolkit/wiki/Fastest-Method-to-Align-Pointers
+
+    // For understanding consider the following numbers in binary, the dotted line represents the alignment for a given range of numbers
+    
+    // 3 bits rounded to the next multiple of 2
+    // 000 ------0
+    // 001
+    // 010 ------2
+    // 011
+    // 100 ------4
+    // 101
+    // 110 ------6
+    // 111
+    // Mapping is [0 -> 0, 1->2, 2->2, 3->4, 4->4, 5->6, 6->6, 7->overflow(8)]
+    //
+    // 4 bits rounded to the next multiple of 4
+    // 0000 ------0
+    // 0001
+    // 0010
+    // 0011
+    // 0100 ------4
+    // 0101
+    // 0110
+    // 0111
+    // 1000 ------8
+    // 1001
+    // 1010
+    // 1011
+    // 1100 ------12
+    // 1101
+    // 1110
+    // 1111
+    // Mapping is [0 -> 0, 1->4, 2->4, 3->4, 4->4, 5->8, 6->8, 7->8, 8->]
+
+    // The idea of the algorithm below is
+    // - Sum (alignment - 1) to the current value, this moves the value after the next multiple (dotted line above)
+    // - Subtract a number N, so the value calculated previously fall backs into the downwards closest multiple   
+    
+    
+    uintptr_t MaybeUnderBiasedIntPtr = reinterpret_cast<uintptr_t>(Data);
+    uintptr_t AlignedBiasedIntPtr = MaybeUnderBiasedIntPtr + Alignment - 1;
+    uintptr_t AlignedIntPtr = AlignedBiasedIntPtr & ~(Alignment - 1);
+
+    // Calculate the distance from MaybeUnderBiasedIntPtr to AlignedIntPtr
+    uintptr_t Bias = AlignedIntPtr - MaybeUnderBiasedIntPtr;
+
+    // Calculate the nearest higher multiple, we could just return AlignedIntPtr, but the linter would yell "performance-no-int-to-ptr",
+    // to avoid this we calculate the bias and return the Data + Bias
+    return Data + Bias;
+}
+
+// These defines are used to mark a difference between two pointers as expected to fit into the specified range
+// while still leaving something searchable if the surrounding code is updated to work with a 64 bit count/range
+// in the future
+#define UE_PTRDIFF_TO_INT32(argument) static_cast<int32_t>(argument)
+
 void FCrc::Init()
 {
 #if _DEBUG
@@ -181,6 +249,8 @@ void FCrc::Init()
     for (uint32_t i = 0; i != 256; ++i)
     {
         // Calculate the CRC of number i which is 8 bits long
+        //    Result                
+        // i  00  00  00  00  00
         uint32_t Crc = i;
         for (uint32_t j = 8; j; --j)
         {
@@ -194,11 +264,11 @@ void FCrc::Init()
 
     // Calculate the CRC of the next 7 tables using the first table
     // E.g.:
-    // Assume that each element in the following table is 1 byte long
+    // Assume that each element in the following table is 1 byte long, and we read 1 byte per step
     //          Result
     // A0   0   0   0
-    // 0    B0  B1  0       (Annotation1)
-    // 0    0   C0  C1      (Annotation2)
+    // 0    B0  B1  0       (Figure1)
+    // 0    0   C0  C1      (Figure2)
     //
     // Assume a function Remainder(X) = [Remainder0(X):Remainder1(X)]
     // Then:
@@ -207,31 +277,95 @@ void FCrc::Init()
     // B1 = Remainder1(A0) ^ A2 where A2 = 0 
     // C0 = Remainder0(B0) ^ B1
     // C1 = Remainder1(B0) ^ B2 where B2 = 0
+    //
+    // Note that this technique is used also at FCrc::MemCrc32, but we read 8 bytes per step instead of 1 and result is 4 bytes long
+    
     for (uint32_t i = 0; i != 256; ++i)
     {
         // Calculate the CRC of 1 byte using first table
-        uint32_t Crc = CRCTablesSB8[0][i]; // (Annotation1)
+        uint32_t Crc = CRCTablesSB8[0][i]; // see (Figure1)
 
         // Calculate the remainder of all the other remainder tables:
         // j                                    Result                
-        // 1    00  00  00  00  00  00  FF  00  00  00  00  00
-        // 2    00  00  00  00  00  FF  00  00  00  00  00  00
-        // 3    00  00  00  00  FF  00  00  00  00  00  00  00
-        // 4    00  00  00  FF  00  00  00  00  00  00  00  00
-        // 5    00  00  FF  00  00  00  00  00  00  00  00  00
-        // 6    00  FF  00  00  00  00  00  00  00  00  00  00
-        // 7    FF  00  00  00  00  00  00  00  00  00  00  00
+        // 1    00  00  00  00  00  00  ??  00  00  00  00  00
+        // 2    00  00  00  00  00  ??  00  00  00  00  00  00
+        // 3    00  00  00  00  ??  00  00  00  00  00  00  00
+        // 4    00  00  00  ??  00  00  00  00  00  00  00  00
+        // 5    00  00  ??  00  00  00  00  00  00  00  00  00
+        // 6    00  ??  00  00  00  00  00  00  00  00  00  00
+        // 7    ??  00  00  00  00  00  00  00  00  00  00  00
         for (uint32_t j = 1; j != 8; ++j)
         {
             // Calculate the CRC of the next byte using the first table
-            Crc = CRCTablesSB8[0][Crc & 0xff] ^ (Crc >> 8); // (Annotation2)            
+            Crc = CRCTablesSB8[0][Crc & 0xff] ^ (Crc >> 8); // See (Figure2)            
             assert(CRCTablesSB8[j][i] == Crc);
         }
     }
 #endif // _DEBUG
 }
 
-uint32_t FCrc::MemCrc32(const void* Data, int32_t Length, uint32_t CRC)
+uint32_t FCrc::MemCrc32(const void* InData, int32_t Length, uint32_t CRC /* = 0 */)
 {
-    return 0;
+    // From Slide By 8 proposed at "A systematic approach to building high performance, software based, CRC generators By Michael E. Kounavis and Frank L. Berry"
+    // Compare results using https://crccalc.com/?crc=1&method=CRC-32/ISO-HDLC&datatype=ascii&outtype=hex
+
+    // This is useful to make sure that starting zeros are not ignored, e.g. 0000001
+    CRC = ~CRC;
+
+    // https://stackoverflow.com/questions/776283/what-does-the-restrict-keyword-mean-in-c
+    const uint8_t* __restrict Data = static_cast<const uint8_t*>(InData);
+
+    // First we need to align to 32-bits: Find the nearest higher multiple of 4 
+    int32_t InitBytes = UE_PTRDIFF_TO_INT32(Align(Data, 4) - Data);
+
+    // Skip if nearest upwards 32-bit address multiple is outside the Data range 
+    if (Length > InitBytes)
+    {
+        // Process the first bytes which are before the InitBytes address
+        Length -= InitBytes;
+
+        // CRC for bytes that are before the initial 32-bit aligned address are calculated per byte
+        // instead of per 8 bytes
+        for (; InitBytes; --InitBytes)
+        {
+            CRC = (CRC >> 8) ^ FCrc::CRCTablesSB8[0][(CRC & 0xFF) ^ *Data++];
+        }
+
+        // Reinterpret the pointer so we can read 4 bytes per each de-reference
+        auto Data4 = reinterpret_cast<const uint32_t*>(Data);
+
+        // Repeat formula comes directly from the paper and is stated as the total bytes to be
+        // read divided by bytes read per iteration 
+        for (uint32_t Repeat = Length / 8; Repeat; --Repeat)
+        {
+            uint32_t V1 = *Data4++ ^ CRC; // Read 4 bytes, increment the pointer to next 4 bytes and apply the CRC calculated from last iteration
+            uint32_t V2 = *Data4++; // Read 4 bytes and increment the pointer to next 4 bytes
+
+            // Calculate the CRC for 8 Bytes, here we calculate the CRC for 8 slides of data then sum all together to get the CRC for the read 8 bytes
+            // Michael E. Kounavis and Frank L. Berry provide a proved of this to be true in their paper at section "IV Building High Performance CRC generators > B. Correctness"
+            CRC =                                           //                                        Result
+                FCrc::CRCTablesSB8[7][ V1         & 0xFF] ^ // CRC of 00  00  00  00  00  00  00  ??  00  00  00  00
+                FCrc::CRCTablesSB8[6][(V1 >> 8)   & 0xFF] ^ // CRC of 00  00  00  00  00  00  ??  00  00  00  00  00
+                FCrc::CRCTablesSB8[5][(V1 >> 16)  & 0xFF] ^ // CRC of 00  00  00  00  00  ??  00  00  00  00  00  00
+                FCrc::CRCTablesSB8[4][ V1 >> 24         ] ^ // CRC of 00  00  00  00  ??  00  00  00  00  00  00  00
+                FCrc::CRCTablesSB8[3][ V2         & 0xFF] ^ // CRC of 00  00  00  ??  00  00  00  00  00  00  00  00
+                FCrc::CRCTablesSB8[2][(V2 >> 8)   & 0xFF] ^ // CRC of 00  00  ??  00  00  00  00  00  00  00  00  00
+                FCrc::CRCTablesSB8[1][(V2 >> 16)  & 0xFF] ^ // CRC of 00  ??  00  00  00  00  00  00  00  00  00  00
+                FCrc::CRCTablesSB8[0][ V2 >> 24         ];  // CRC of ??  00  00  00  00  00  00  00  00  00  00  00
+        }
+
+        // Update the Data pointer to be the next byte to be read
+        Data = reinterpret_cast<const uint8_t*>(Data4);
+
+        // Calculate how many bytes are still pending to be read
+        Length %= 8;
+    }
+
+    // Calculate the CRC for the remaining bytes
+    for (; Length; --Length)
+    {
+        CRC = (CRC >> 8) ^ FCrc::CRCTablesSB8[0][(CRC & 0xFF) ^ *Data++];
+    }
+
+    return ~CRC;
 }
