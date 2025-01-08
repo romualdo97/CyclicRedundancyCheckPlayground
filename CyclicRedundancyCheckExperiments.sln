@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Basic", "Basic\Basic.vcxproj", "{00A3F262-542D-47D1-BBAD-93F1C8A44885}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SlideByEight", "SlideByEight\SlideByEight.vcxproj", "{DEC0D64C-428C-4285-B3CD-1AFE477404D0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -18,5 +20,13 @@ Global
 		{00A3F262-542D-47D1-BBAD-93F1C8A44885}.Release|Win32.Build.0 = Release|Win32
 		{00A3F262-542D-47D1-BBAD-93F1C8A44885}.Release|x64.ActiveCfg = Release|x64
 		{00A3F262-542D-47D1-BBAD-93F1C8A44885}.Release|x64.Build.0 = Release|x64
+		{DEC0D64C-428C-4285-B3CD-1AFE477404D0}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DEC0D64C-428C-4285-B3CD-1AFE477404D0}.Debug|Win32.Build.0 = Debug|Win32
+		{DEC0D64C-428C-4285-B3CD-1AFE477404D0}.Debug|x64.ActiveCfg = Debug|x64
+		{DEC0D64C-428C-4285-B3CD-1AFE477404D0}.Debug|x64.Build.0 = Debug|x64
+		{DEC0D64C-428C-4285-B3CD-1AFE477404D0}.Release|Win32.ActiveCfg = Release|Win32
+		{DEC0D64C-428C-4285-B3CD-1AFE477404D0}.Release|Win32.Build.0 = Release|Win32
+		{DEC0D64C-428C-4285-B3CD-1AFE477404D0}.Release|x64.ActiveCfg = Release|x64
+		{DEC0D64C-428C-4285-B3CD-1AFE477404D0}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal
