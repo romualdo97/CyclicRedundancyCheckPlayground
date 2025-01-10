@@ -343,7 +343,7 @@ uint32_t FCrc::MemCrc32(const void* InData, int32_t Length, uint32_t CRC /* = 0 
             uint32_t V2 = *Data4++; // Read 4 bytes and increment the pointer to next 4 bytes
 
             // Calculate the CRC for 8 Bytes, here we calculate the CRC for 8 slides of data then sum all together to get the CRC for the read 8 bytes
-            // Michael E. Kounavis and Frank L. Berry provide a proved of this to be true in their paper at section "IV Building High Performance CRC generators > B. Correctness"
+            // Michael E. Kounavis and Frank L. Berry provide a proof of this in their paper at section "IV Building High Performance CRC generators > B. Correctness"
             CRC =                                           //                                        Result
                 FCrc::CRCTablesSB8[7][ V1         & 0xFF] ^ // CRC of 00  00  00  00  00  00  00  ??  00  00  00  00
                 FCrc::CRCTablesSB8[6][(V1 >> 8)   & 0xFF] ^ // CRC of 00  00  00  00  00  00  ??  00  00  00  00  00
